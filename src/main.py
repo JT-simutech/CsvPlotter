@@ -1,12 +1,14 @@
 '''
-v1  2022-07-02 - Created based on Pyshine project for csv plot single file
-v2  2022-07-04 - Added possibility to read .txt files from SIMIT in addition to csv
-v3 draft  2022-07-05 - Modified text and data file input reading, added fixed second y-scale
-v3 final 2022-07-05 - Added scale factor. Updated plot and tested with two csv + a text file 
-v4 final 2022-07-12 - Combined file open filter to both text and csv.
-v5 final 2022-07-12 - Updated GUI and x-axis offset. Added Refresh buttons for dataset 1 and 2.
+Draft v1  2022-07-02 - Created based on Pyshine project for csv plot single file
+Draft v2  2022-07-04 - Added possibility to read .txt files from SIMIT in addition to csv
+Draft v3  2022-07-05 - Modified text and data file input reading, added fixed second y-scale
+Draft v3 2022-07-05 - Added scale factor. Updated plot and tested with two csv + a text file 
+Draft v4 final 2022-07-12 - Combined file open filter to both text and csv.
+Draft v5 final 2022-07-12 - Updated GUI and x-axis offset. Added Refresh buttons for dataset 1 and 2.
+Release v1.0 2024-01-17 - Updated GUI with a second Y-axis and increased slider values for x-axis
+Release v1.1 2024-01-17 - Udated GUI and second Y-axis further
 
-@Author: John Tore Andreassen
+@Author: JT-simutech
 '''
 
 import warnings
@@ -50,8 +52,8 @@ class data(QtWidgets.QMainWindow, Ui_MainWindow): # Add Ui_MainWindow as arg to 
         #uic.loadUi('csv_plotter.ui', self)     # Remove to build from ui directly
         self.ui = Ui_MainWindow()               # Added to build from pyuic5 py file
         self.setupUi(self)                      # Added to build from pyuic5 py file
-        self.GUI_version = 'v6Alpha'
-        self.setWindowTitle('Plot comparison tool for csv/txt datasets - JT. Andreassen - build '+ self.GUI_version)
+        self.GUI_version = 'v2'
+        self.setWindowTitle('Plot comparison tool for csv/txt datasets - JT-simutech, 2024 - build '+ self.GUI_version)
         self.show()
         self.connectSignalsSlots()
 
@@ -73,16 +75,22 @@ class data(QtWidgets.QMainWindow, Ui_MainWindow): # Add Ui_MainWindow as arg to 
         self.list_of_columns_dataset1 = []
         self.list_of_columns_dataset2 = []
         
+        # Dataset 1
         self.data1_x_axis_slt=None
         self.data1_y_axis_slt=None
+        self.data1_y_axis2_slt=None
         
+        
+        # Dataset 2
         self.data2_x_axis_slt=None
         self.data2_y_axis_slt=None
+        self.data2_y_axis2_slt=None
         
+        # Initialize the multipliers/scale factors for x-axis data 1 and 2
         self.data1_x_axis_multiplier = 1
         self.data2_x_axis_multiplier = 1
         
-        # Initial x-axis offset scaling
+        # Initial x-axis offset setting
         self.offset_data1_x_axis = 0
         self.offset_data2_x_axis = 0
         
@@ -139,9 +147,17 @@ class data(QtWidgets.QMainWindow, Ui_MainWindow): # Add Ui_MainWindow as arg to 
         self.Update(self.current_theme)
         
     def select_data1_Yaxis(self,value):
-        print('data 1 y-axis',value)
+        ''' Y-axis 1/2 for dataset 1 '''
+        print('data 1 y-axis 1',value)
         self.data1_y_axis_slt=value
         self.Update(self.current_theme)
+        
+    def select_data1_Yaxis2(self,value):
+        ''' Y-axis 2/2 for dataset 1 '''
+        print('data 1 y-axis 2',value)
+        self.data1_y_axis2_slt=value
+        self.Update(self.current_theme)
+        
 
     def select_data2_Xaxis(self,value):
         print('data 2 x-axis',value)
@@ -149,7 +165,12 @@ class data(QtWidgets.QMainWindow, Ui_MainWindow): # Add Ui_MainWindow as arg to 
         self.Update(self.current_theme)
         
     def select_data2_Yaxis(self,value):
-        print('data 2 y-axis',value)
+        print('data 2 y-axis 1',value)
+        self.data2_y_axis_slt=value
+        self.Update(self.current_theme)
+        
+    def select_data2_Yaxis2(self,value):
+        print('data 2 y-axis 2',value)
         self.data2_y_axis_slt=value
         self.Update(self.current_theme)
 
@@ -179,6 +200,10 @@ class data(QtWidgets.QMainWindow, Ui_MainWindow): # Add Ui_MainWindow as arg to 
             ax.plot( xdata1, self.dataset1[self.data1_y_axis_slt],
                     label=(self.Title1 + '\n' + self.data1_y_axis_slt))
             
+            ax.plot( xdata1, self.dataset1[self.data1_y_axis2_slt],
+                    label=(self.Title1 + '\n' + self.data1_y_axis2_slt))
+            
+            
             self.plot_title = self.Title1
             
             #TODO Y-scale tick marks
@@ -192,13 +217,26 @@ class data(QtWidgets.QMainWindow, Ui_MainWindow): # Add Ui_MainWindow as arg to 
                 if self.enable_second_yscale:
                     ax2 = ax.twinx()
                     
+                    # ydata 1 
                     ax2.plot( xdata2, self.dataset2[self.data2_y_axis_slt], '-r',   
                              label=self.Title2 + '\n' + self.data2_y_axis_slt)
+                    
+                    # ydata 2
+                    ax2.plot( xdata2, self.dataset2[self.data2_y_axis2_slt], '-g',   
+                             label=self.Title2 + '\n' + self.data2_y_axis2_slt)
+                    
+                    
                     ax2.set_ylabel(self.data2_y_axis_slt)
                     
                 if not self.enable_second_yscale:
+                    
+                    # ydata 1
                     ax.plot( xdata2, self.dataset2[self.data2_y_axis_slt],
                             label=self.Title2 + '\n' + self.data2_y_axis_slt)
+                    
+                    # ydata 2
+                    ax.plot( xdata2, self.dataset2[self.data2_y_axis2_slt],
+                            label=self.Title2 + '\n' + self.data2_y_axis2_slt)
             
             # The fig legend is better than the ax legends (Matplotlib >2.1)
             # bbox to anch/transform is to get location within axes again
@@ -206,6 +244,8 @@ class data(QtWidgets.QMainWindow, Ui_MainWindow): # Add Ui_MainWindow as arg to 
             
             ax.set_xlabel(self.data1_x_axis_slt)
             ax.set_ylabel(self.data1_y_axis_slt)
+            ax.set_ylabel(self.data1_y_axis2_slt)
+            
             ax.set_title(self.plot_title)
             plt.setp(ax.xaxis.get_majorticklabels(), rotation=25)  # uncomment if you want the x-axis to tilt 25 degree
             
@@ -265,6 +305,7 @@ class data(QtWidgets.QMainWindow, Ui_MainWindow): # Add Ui_MainWindow as arg to 
     def readDatafile1(self):
         self.data1_x_axis_slt=None
         self.data1_y_axis_slt=None
+        self.data1_y_axis2_slt=None
         self.dataset1={}
 
         base_name = os.path.basename(self.filename1)
@@ -276,13 +317,13 @@ class data(QtWidgets.QMainWindow, Ui_MainWindow): # Add Ui_MainWindow as arg to 
         if 'csv' in base_name:
             self.dataset1, self.list_of_columns_dataset1 = self.getDataset_csv(self.filename1)
            
-        #self.df1 = pd.read_csv(self.filename1,encoding = 'utf-8').fillna(0)
         self.Update(self.current_theme) # lets 0th theme be the default : bmh
         self.reset_comboBoxes_data1()
         
     def readDatafile2(self):
         self.data2_x_axis_slt=None
         self.data2_y_axis_slt=None
+        self.data2_y_axis2_slt=None
         self.dataset2={}
         
         base_name = os.path.basename(self.filename2)
@@ -293,8 +334,7 @@ class data(QtWidgets.QMainWindow, Ui_MainWindow): # Add Ui_MainWindow as arg to 
             self.dataset2, self.list_of_columns_dataset2 = self.getDataset_txt(self.filename2)
         if 'csv' in base_name:
             self.dataset2, self.list_of_columns_dataset2 = self.getDataset_csv(self.filename2)
-  
-        #self.df2 = pd.read_csv(self.filename2,encoding = 'utf-8').fillna(0)    
+     
         self.Update(self.current_theme) # lets 0th theme be the default : bmh
         self.reset_comboBoxes_data2()
         
@@ -349,24 +389,39 @@ class data(QtWidgets.QMainWindow, Ui_MainWindow): # Add Ui_MainWindow as arg to 
     def reset_comboBoxes_data1(self):
         self.comboBox_data1_x_axis.clear()
         self.comboBox_data1_y_axis.clear()
+        self.comboBox_data1_y_axis_2.clear()
+        
+        # Add initial values to the combo boxes
         self.comboBox_data1_x_axis.addItems(['Select horizontal axis here'])
-        self.comboBox_data1_y_axis.addItems(['Select vertical axis here'])
+        self.comboBox_data1_y_axis.addItems(['Select y-data 1 here'])
+        self.comboBox_data1_y_axis_2.addItems(['Select y-data 2 here'])
+        
+        # Make dropdown selections available for all data found in csv/txt
         self.comboBox_data1_x_axis.addItems(self.list_of_columns_dataset1)
         self.comboBox_data1_y_axis.addItems(self.list_of_columns_dataset1)
+        self.comboBox_data1_y_axis_2.addItems(self.list_of_columns_dataset1)
+        
     
     def reset_comboBoxes_data2(self):
         self.comboBox_data2_x_axis.clear()
         self.comboBox_data2_y_axis.clear()
+        self.comboBox_data2_y_axis_2.clear()
+        
+        # Add initial values to the combo boxes
         self.comboBox_data2_x_axis.addItems(['Select horizontal axis here'])
-        self.comboBox_data2_y_axis.addItems(['Select vertical axis here'])
+        self.comboBox_data2_y_axis.addItems(['Select y-data 1 here'])
+        self.comboBox_data2_y_axis_2.addItems(['Select y-data 2 here'])
+        
+        # Make dropdown selections available for all data found in csv/txt
         self.comboBox_data2_x_axis.addItems(self.list_of_columns_dataset2)
         self.comboBox_data2_y_axis.addItems(self.list_of_columns_dataset2)
+        self.comboBox_data2_y_axis_2.addItems(self.list_of_columns_dataset2)
         
         
     def show_about_popup(self):
         msg = QMessageBox()
         msg.setWindowTitle("About the csv plot tool..")
-        msg.setText("Compare data from two datasets with tab formatted txt\n or a comma separated file.\n\n\n Created by John Tore Andreassen - Siemens-Energy")
+        msg.setText("Compare data from two datasets with tab formatted txt\n or a comma separated file.\n\n\n Created by JT-simutech")
         msg.setIcon(QMessageBox.Information)
         msg.setStandardButtons(QMessageBox.Ok)
         msg.exec()
@@ -374,14 +429,21 @@ class data(QtWidgets.QMainWindow, Ui_MainWindow): # Add Ui_MainWindow as arg to 
         
     # Connect action buttons to application actions
     def connectSignalsSlots(self): 
+        # Connect selected indexes of combo boxes to action-functions for dataset 1
         self.comboBox_data1_x_axis.currentIndexChanged['QString'].connect(self.select_data1_Xaxis)
         self.comboBox_data1_y_axis.currentIndexChanged['QString'].connect(self.select_data1_Yaxis)
-
+        self.comboBox_data1_y_axis_2.currentIndexChanged['QString'].connect(self.select_data1_Yaxis2)
+        
+        # Connect selected indexes of combo boxes to action-functions for dataset 2
         self.comboBox_data2_x_axis.currentIndexChanged['QString'].connect(self.select_data2_Xaxis)
         self.comboBox_data2_y_axis.currentIndexChanged['QString'].connect(self.select_data2_Yaxis)
+        self.comboBox_data2_y_axis_2.currentIndexChanged['QString'].connect(self.select_data2_Yaxis2)
         
+        # Connect actions for the opening of dataset 1 and 2
         self.actionOpen_csv_file_1.triggered.connect(self.getFile1)
         self.actionOpen_csv_file_2.triggered.connect(self.getFile2)
+        
+        # Connect actions for closing app and/or show "about" popup
         self.actionExit.triggered.connect(self.close)
         self.actionAbout.triggered.connect(self.show_about_popup)
         

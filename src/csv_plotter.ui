@@ -9,12 +9,12 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>1894</width>
-    <height>1020</height>
+    <width>2079</width>
+    <height>1040</height>
    </rect>
   </property>
   <property name="windowTitle">
-   <string>Plot comparison tool for csv/txt datasets - JT. Andreassen 2022</string>
+   <string>Plot comparison tool for csv/txt datasets - JT-simutech</string>
   </property>
   <widget class="QWidget" name="centralwidget">
    <widget class="QWidget" name="horizontalLayoutWidget">
@@ -126,19 +126,22 @@
        <item row="8" column="1">
         <widget class="QSlider" name="slider_data1_x_axis_offset">
          <property name="minimum">
-          <number>-10000</number>
+          <number>-100000</number>
          </property>
          <property name="maximum">
-          <number>10000</number>
+          <number>100000</number>
          </property>
          <property name="singleStep">
-          <number>10</number>
+          <number>100</number>
          </property>
          <property name="pageStep">
           <number>1000</number>
          </property>
          <property name="value">
           <number>0</number>
+         </property>
+         <property name="tracking">
+          <bool>true</bool>
          </property>
          <property name="orientation">
           <enum>Qt::Horizontal</enum>
@@ -147,7 +150,7 @@
           <enum>QSlider::TicksAbove</enum>
          </property>
          <property name="tickInterval">
-          <number>500</number>
+          <number>5000</number>
          </property>
         </widget>
        </item>
@@ -248,13 +251,13 @@
           </sizepolicy>
          </property>
          <property name="minimum">
-          <number>-10000</number>
+          <number>-100000</number>
          </property>
          <property name="maximum">
-          <number>10000</number>
+          <number>100000</number>
          </property>
          <property name="singleStep">
-          <number>10</number>
+          <number>100</number>
          </property>
          <property name="pageStep">
           <number>1000</number>
@@ -269,7 +272,7 @@
           <enum>QSlider::TicksAbove</enum>
          </property>
          <property name="tickInterval">
-          <number>500</number>
+          <number>5000</number>
          </property>
         </widget>
        </item>
@@ -348,9 +351,9 @@
     <property name="geometry">
      <rect>
       <x>0</x>
-      <y>240</y>
+      <y>290</y>
       <width>1901</width>
-      <height>731</height>
+      <height>721</height>
      </rect>
     </property>
     <layout class="QVBoxLayout" name="verticalLayout"/>
@@ -361,8 +364,8 @@
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>1894</width>
-     <height>21</height>
+     <width>2079</width>
+     <height>26</height>
     </rect>
    </property>
    <widget class="QMenu" name="menuFile">
