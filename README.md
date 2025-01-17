@@ -1,4 +1,7 @@
+# CSV Plot tool that can align and plot two datasets
+Use one to two text files, select data and plot it. Use comma separated or tab separated data with headings.
 
+# Instructions for updates
 Convert the «csv_plotter.ui» file to (python) .py file using pyuic5:
 
 ## Step 1 - Update Python file from UI file using Anaconda/miniconda or WinPython CMD prompt                        
