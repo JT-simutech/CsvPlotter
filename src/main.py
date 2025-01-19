@@ -6,7 +6,7 @@ Draft v3 2022-07-05 - Added scale factor. Updated plot and tested with two csv +
 Draft v4 final 2022-07-12 - Combined file open filter to both text and csv.
 Draft v5 final 2022-07-12 - Updated GUI and x-axis offset. Added Refresh buttons for dataset 1 and 2.
 Release v1.0 2024-01-17 - Updated GUI with a second Y-axis and increased slider values for x-axis
-Release v1.1 2024-01-17 - Udated GUI and second Y-axis further
+Release v2.0 2024-01-19 - Updated GUI and refined second dataset handling. Improved legend, color scale and plot
 
 @Author: JT-simutech
 '''
@@ -68,7 +68,10 @@ class data(QtWidgets.QMainWindow, Ui_MainWindow): # Add Ui_MainWindow as arg to 
         self.dataset1={}
         self.dataset2={}
         
+        # If text file format is used, set tab as default separator
         self.txt_file_separator = '\t'
+        
+        # Assume header row is present
         self.txt_file_header_row = 0
         
         # List for populating the comboboxes (same for x/y boxes) 
@@ -79,7 +82,6 @@ class data(QtWidgets.QMainWindow, Ui_MainWindow): # Add Ui_MainWindow as arg to 
         self.data1_x_axis_slt=None
         self.data1_y_axis_slt=None
         self.data1_y_axis2_slt=None
-        
         
         # Dataset 2
         self.data2_x_axis_slt=None
@@ -113,6 +115,16 @@ class data(QtWidgets.QMainWindow, Ui_MainWindow): # Add Ui_MainWindow as arg to 
         # Make a theme selection based on list above(static for now)
         self.current_theme = self.themes[4]
         
+        # Define a color palette for trends to ensure no overwriting
+        self.colors = {
+            'dataset1_y1': 'lightblue',
+            'dataset1_y2': 'blue',
+            'dataset2_y1': 'red',
+            'dataset2_y2': 'green',
+            'dataset2_y1_secondary': 'orange',
+            'dataset2_y2_secondary': 'purple'
+        }
+         
         # The plot toolbar can be embedded but is not
         # part of the design in the .ui file
         self.toolbar = Navi(self.canv,self.centralwidget)
@@ -171,89 +183,129 @@ class data(QtWidgets.QMainWindow, Ui_MainWindow): # Add Ui_MainWindow as arg to 
         
     def select_data2_Yaxis2(self,value):
         print('data 2 y-axis 2',value)
-        self.data2_y_axis_slt=value
+        self.data2_y_axis2_slt=value
         self.Update(self.current_theme)
 
-  
-    # Updates the plot, uses a string value in to select plot style
-    def Update(self,value):
+    
+    def Update(self, value):
         print("Updating plot..")
         plt.style.use(value)
         
-        # Reduce scope for the Update method, do some delete/refresh..
         self.refresh_canvas()
-        
-        # Initial axis /base axis
         ax = self.canv.axes
-        
-        try:     
-            # Compare y1 in datasets 1 and 2
-            # Numpy array is the datatype. Add/subtract offset constant to all elements
-            xdata1 = self.dataset1[self.data1_x_axis_slt]+ self.offset_data1_x_axis
-            
-            # Scale the xdata (i.e. millisec to sec --> use 0.001 as multiplier)
-            xdata1 = np.multiply(xdata1, self.data1_x_axis_multiplier)
-            
-            # If there is no second data yet, we need to know so we can skip errors
-            dataset2_has_data = len(self.dataset2) > 0
-            
-            ax.plot( xdata1, self.dataset1[self.data1_y_axis_slt],
-                    label=(self.Title1 + '\n' + self.data1_y_axis_slt))
-            
-            ax.plot( xdata1, self.dataset1[self.data1_y_axis2_slt],
-                    label=(self.Title1 + '\n' + self.data1_y_axis2_slt))
-            
-            
-            self.plot_title = self.Title1
-            
-            #TODO Y-scale tick marks
-            
-            # Adjust plot with the dataset 2 info
-            if dataset2_has_data:
-                xdata2 = self.dataset2[self.data2_x_axis_slt]+ self.offset_data2_x_axis
-                xdata2 = np.multiply(xdata2, self.data2_x_axis_multiplier)
-                self.plot_title = self.Title1 + " vs. " + self.Title2
-                
-                if self.enable_second_yscale:
-                    ax2 = ax.twinx()
-                    
-                    # ydata 1 
-                    ax2.plot( xdata2, self.dataset2[self.data2_y_axis_slt], '-r',   
-                             label=self.Title2 + '\n' + self.data2_y_axis_slt)
-                    
-                    # ydata 2
-                    ax2.plot( xdata2, self.dataset2[self.data2_y_axis2_slt], '-g',   
-                             label=self.Title2 + '\n' + self.data2_y_axis2_slt)
-                    
-                    
-                    ax2.set_ylabel(self.data2_y_axis_slt)
-                    
-                if not self.enable_second_yscale:
-                    
-                    # ydata 1
-                    ax.plot( xdata2, self.dataset2[self.data2_y_axis_slt],
-                            label=self.Title2 + '\n' + self.data2_y_axis_slt)
-                    
-                    # ydata 2
-                    ax.plot( xdata2, self.dataset2[self.data2_y_axis2_slt],
-                            label=self.Title2 + '\n' + self.data2_y_axis2_slt)
-            
-            # The fig legend is better than the ax legends (Matplotlib >2.1)
-            # bbox to anch/transform is to get location within axes again
-            self.canv.fig.legend(loc="upper right", bbox_to_anchor=(1,1), bbox_transform=ax.transAxes)
-            
-            ax.set_xlabel(self.data1_x_axis_slt)
-            ax.set_ylabel(self.data1_y_axis_slt)
-            ax.set_ylabel(self.data1_y_axis2_slt)
-            
-            ax.set_title(self.plot_title)
-            plt.setp(ax.xaxis.get_majorticklabels(), rotation=25)  # uncomment if you want the x-axis to tilt 25 degree
-            
+        ax.cla()  # Clear the axes before plotting
+    
+        try:
+            # Plot dataset 1
+            if self.data1_x_axis_slt and self.data1_y_axis_slt:
+                self.plot_dataset1(ax)
+    
+            # Plot dataset 2 if it exists
+            if self.data2_x_axis_slt and self.data2_y_axis_slt:
+                self.plot_dataset2(ax)
+    
+            # Update legend and labels
+            self.update_legend(ax)
+            self.set_labels_and_title(ax)
+    
         except Exception as e:
-            print('Error from update ==>',e)
-            pass
-        
+            print('Error from update ==>', e)
+    
         self.canv.draw()
+
+    def plot_dataset1(self, ax):
+        """Plot the first dataset."""
+        xdata1 = self.dataset1[self.data1_x_axis_slt] + self.offset_data1_x_axis
+        xdata1 = np.multiply(xdata1, self.data1_x_axis_multiplier)
+    
+        # Check if the first y-axis is selected
+        if self.data1_y_axis_slt:
+            ax.plot(xdata1, self.dataset1[self.data1_y_axis_slt],
+                    label=f"{self.Title1} - {self.data1_y_axis_slt}",
+                    color=self.colors['dataset1_y1'])
+    
+        # Check if the second y-axis is selected
+        if self.data1_y_axis2_slt:
+            ax.plot(xdata1, self.dataset1[self.data1_y_axis2_slt],
+                    label=f"{self.Title1} - {self.data1_y_axis2_slt}",
+                    color=self.colors['dataset1_y2'])
+    
+        self.plot_title = self.Title1  # Update plot title
+
+    def plot_dataset2(self, ax):
+       """Plot the second dataset."""
+       if not self.data2_x_axis_slt:
+           print("Please select an x-axis for dataset 2.")
+           return
+       
+        # Debug prints
+       #print(f"Selected x-axis for dataset 2: {self.data2_x_axis_slt}")
+       #print(f"Selected y-axis 1 for dataset 2: {self.data2_y_axis_slt}")
+       #print(f"Selected y-axis 2 for dataset 2: {self.data2_y_axis2_slt}")
+           
+       xdata2 = self.dataset2[self.data2_x_axis_slt] + self.offset_data2_x_axis
+       xdata2 = np.multiply(xdata2, self.data2_x_axis_multiplier)
+   
+       # Check if the second y-scale is enabled
+       if self.enable_second_yscale:
+           ax2 = ax.twinx()  # Create a second y-axis
+   
+           # Check if the first y-axis for dataset 2 is selected
+           if self.data2_y_axis_slt:
+               ax2.plot(xdata2, self.dataset2[self.data2_y_axis_slt], '-r',
+                        label=f"{self.Title2} - {self.data2_y_axis_slt}",
+                        color=self.colors['dataset2_y1'])  # Use distinct color
+   
+           # Check if the second y-axis for dataset 2 is selected
+           if self.data2_y_axis2_slt:
+               ax2.plot(xdata2, self.dataset2[self.data2_y_axis2_slt], '-g',
+                        label=f"{self.Title2} - {self.data2_y_axis2_slt}",
+                        color=self.colors['dataset2_y2_secondary'])  # Use distinct color
+   
+           ax2.set_ylabel(self.data2_y_axis_slt)  # Set y-label for the second y-axis
+   
+       else:
+           # Plot on the primary y-axis
+           # Check if the first y-axis for dataset 2 is selected
+           if self.data2_y_axis_slt:
+               ax.plot(xdata2, self.dataset2[self.data2_y_axis_slt],
+                       label=f"{self.Title2} - {self.data2_y_axis_slt}",
+                       color=self.colors['dataset2_y1'])  # Use distinct color
+   
+           # Check if the second y-axis for dataset 2 is selected
+           if self.data2_y_axis2_slt:
+               ax.plot(xdata2, self.dataset2[self.data2_y_axis2_slt],
+                       label=f"{self.Title2} - {self.data2_y_axis2_slt}",
+                       color=self.colors['dataset2_y2'])  # Use distinct color
+   
+       self.plot_title = self.Title1 + " vs. " + self.Title2  # Update plot title
+        
+    def update_legend(self, ax):
+        """Update the legend for the plot."""
+        handles, labels = ax.get_legend_handles_labels()
+        
+        # If using a second y-axis, get handles and labels from it as well
+        if hasattr(ax, 'twinx'):
+            ax2 = ax.twinx()
+            handles2, labels2 = ax2.get_legend_handles_labels()
+            handles.extend(handles2)
+            labels.extend(labels2)
+    
+        # Create a unique legend
+        by_label = dict(zip(labels, handles))
+        self.canv.fig.legend(by_label.values(), by_label.keys(), loc="upper right", bbox_to_anchor=(1, 1), bbox_transform=ax.transAxes)
+    
+    def set_labels_and_title(self, ax):
+        """
+        Set the labels and title for the plot.
+        Use first only the first dataset to set x and y labels
+        """
+        ax.set_xlabel(self.data1_x_axis_slt)
+        ax.set_ylabel(self.data1_y_axis_slt)
+        
+        ax.set_title(self.plot_title)
+        plt.setp(ax.xaxis.get_majorticklabels(), rotation=25)  # Rotate x-axis labels if needed
+    
     
     def getFile1(self):
         """ This function will get the address of the csv file location
@@ -366,6 +418,7 @@ class data(QtWidgets.QMainWindow, Ui_MainWindow): # Add Ui_MainWindow as arg to 
              print("Updated data 1 x-axis multiplier")
         except Exception as e:
             print('Dataset 1 x-multiplier input is wrong, use float i.e. 2.0 :', e)
+
     
      # LineEdit for dataset 2, x axis multiplier
     def set_data2_x_multiplier(self, text):
@@ -376,15 +429,17 @@ class data(QtWidgets.QMainWindow, Ui_MainWindow): # Add Ui_MainWindow as arg to 
         except Exception as e:
             print('Dataset 2 x-multiplier input is wrong: use float i.e. 2.0', e)
 
+
     def toggle_second_yaxis(self, b):
         if not b.isChecked():
-            print('Disabled 2nd y-axis')
+            print('Second y-axis is not active')
             self.enable_second_yscale = False
             self.Update(self.current_theme)
             return
-        print('Enabled 2nd y-axis')
+        print('Second y-axis is active')
         self.enable_second_yscale = True
         self.Update(self.current_theme)
+
     
     def reset_comboBoxes_data1(self):
         self.comboBox_data1_x_axis.clear()
