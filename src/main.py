@@ -7,12 +7,14 @@ Draft v4 final 2022-07-12 - Combined file open filter to both text and csv.
 Draft v5 final 2022-07-12 - Updated GUI and x-axis offset. Added Refresh buttons for dataset 1 and 2.
 Release v1.0 2024-01-17 - Updated GUI with a second Y-axis and increased slider values for x-axis
 Release v2.0 2024-01-19 - Updated GUI and refined second dataset handling. Improved legend, color scale and plot
+Release v2.1 2025-04-03 - Support four Y-values per axis, updated title handling and logging.
 
 @Author: JT-simutech
 '''
 
 import warnings
 warnings.simplefilter(action='ignore', category=FutureWarning)
+import logging
 import matplotlib
 import matplotlib.pyplot as plt
 matplotlib.use('Qt5Agg')
@@ -34,6 +36,9 @@ from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg, NavigationTool
 # Build .exe with using the pyuic generated csv_plotter.py
 from csv_plotter_ui import Ui_MainWindow # Added to build from pyuic5 py file
 
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.DEBUG)
+
 # We require a canvas class (called from Update)
 class MatplotlibCanvas(FigureCanvasQTAgg):
     def __init__(self,parent=None, dpi = 90):
@@ -52,8 +57,8 @@ class data(QtWidgets.QMainWindow, Ui_MainWindow): # Add Ui_MainWindow as arg to 
         #uic.loadUi('csv_plotter.ui', self)     # Remove to build from ui directly
         self.ui = Ui_MainWindow()               # Added to build from pyuic5 py file
         self.setupUi(self)                      # Added to build from pyuic5 py file
-        self.GUI_version = 'v2'
-        self.setWindowTitle('Plot comparison tool for csv/txt datasets - JT-simutech, 2024 - build '+ self.GUI_version)
+        self.GUI_version = 'v2.1'
+        self.setWindowTitle('Plot comparison tool for csv/txt datasets - build '+ self.GUI_version)
         self.show()
         self.connectSignalsSlots()
 
@@ -119,10 +124,16 @@ class data(QtWidgets.QMainWindow, Ui_MainWindow): # Add Ui_MainWindow as arg to 
         self.colors = {
             'dataset1_y1': 'lightblue',
             'dataset1_y2': 'blue',
+            'dataset1_y3': 'grey',
+            'dataset1_y4': 'black',
             'dataset2_y1': 'red',
-            'dataset2_y2': 'green',
+            'dataset2_y2': 'darkgreen',
+            'dataset2_y3': 'limegreen',
+            'dataset2_y4': 'darkviolet',
             'dataset2_y1_secondary': 'orange',
-            'dataset2_y2_secondary': 'purple'
+            'dataset2_y2_secondary': 'chocolate',
+            'dataset2_y3_secondary': 'yellow',
+            'dataset2_y4_secondary': 'pink'
         }
          
         # The plot toolbar can be embedded but is not
@@ -130,7 +141,7 @@ class data(QtWidgets.QMainWindow, Ui_MainWindow): # Add Ui_MainWindow as arg to 
         self.toolbar = Navi(self.canv,self.centralwidget)
         self.horizontalLayout_top_common.addWidget(self.toolbar)
     
-    # Initializing, called from Update() method
+    # Initializing, called from update_plot() method
     def refresh_canvas(self):
         try:
             self.horizontalLayout_top_common.removeWidget(self.toolbar)
@@ -152,66 +163,120 @@ class data(QtWidgets.QMainWindow, Ui_MainWindow): # Add Ui_MainWindow as arg to 
         self.verticalLayout.addWidget(self.canv)
         self.canv.axes.cla()
                 
-
+    # User selection of axis data for first dataset
     def select_data1_Xaxis(self,value):
         print('data 1 x-axis',value)
         self.data1_x_axis_slt=value
-        self.Update(self.current_theme)
-        
-    def select_data1_Yaxis(self,value):
-        ''' Y-axis 1/2 for dataset 1 '''
-        print('data 1 y-axis 1',value)
-        self.data1_y_axis_slt=value
-        self.Update(self.current_theme)
-        
-    def select_data1_Yaxis2(self,value):
-        ''' Y-axis 2/2 for dataset 1 '''
-        print('data 1 y-axis 2',value)
-        self.data1_y_axis2_slt=value
-        self.Update(self.current_theme)
+        self.update_plot(self.current_theme)
+
         
 
+    def select_data1_Yaxis(self,value):
+        ''' Y-axis 1 for dataset 1 '''
+        print('data 1 y-axis 1',value)
+        self.data1_y_axis_slt=value
+        self.update_plot(self.current_theme)
+
+
+    def select_data1_Yaxis2(self,value):
+        ''' Y-axis 2 for dataset 1 '''
+        print('data 1 y-axis 2',value)
+        self.data1_y_axis2_slt=value
+        self.update_plot(self.current_theme)
+
+
+    def select_data1_Yaxis3(self,value):
+        ''' Y-axis 3 for dataset 1 '''
+        print('data 1 y-axis 3 ',value)
+        self.data1_y_axis3_slt=value
+        self.update_plot(self.current_theme)
+
+
+    def select_data1_Yaxis4(self,value):
+        ''' Y-axis 4 for dataset 1 '''
+        print('data 1 y-axis 4 ',value)
+        self.data1_y_axis4_slt=value
+        self.update_plot(self.current_theme)        
+
+
+    # Let user select axis data for second dataset:
     def select_data2_Xaxis(self,value):
         print('data 2 x-axis',value)
         self.data2_x_axis_slt=value
-        self.Update(self.current_theme)
+        self.update_plot(self.current_theme)
         
+
     def select_data2_Yaxis(self,value):
         print('data 2 y-axis 1',value)
         self.data2_y_axis_slt=value
-        self.Update(self.current_theme)
+        self.update_plot(self.current_theme)
         
+
     def select_data2_Yaxis2(self,value):
         print('data 2 y-axis 2',value)
         self.data2_y_axis2_slt=value
-        self.Update(self.current_theme)
+        self.update_plot(self.current_theme)
+
+
+    def select_data2_Yaxis3(self,value):
+        print('data 2 y-axis 3 ',value)
+        self.data2_y_axis3_slt=value
+        self.update_plot(self.current_theme)
+
+
+    def select_data2_Yaxis4(self,value):
+        print('data 2 y-axis 4 ',value)
+        self.data2_y_axis4_slt=value
+        self.update_plot(self.current_theme)        
+
+
+    def update_title(self):
+        '''
+        Update the plot title based on the selected datasets.
+        Avoid 2x identical titles in the "vs" and set the title as required
+        '''
+        if self.Title1 != self.Title2:
+            self.plot_title = self.Title1 + " vs. " + self.Title2  # Update plot title
+        else:
+            self.plot_title = self.Title1
 
     
-    def Update(self, value):
+    def update_plot(self, current_theme:str):
         print("Updating plot..")
-        plt.style.use(value)
+        plt.style.use(current_theme)
         
         self.refresh_canvas()
         ax = self.canv.axes
         ax.cla()  # Clear the axes before plotting
     
+         # Check if dataset 1 has valid x and y data
+        dataset1_has_data = self.data1_x_axis_slt and (self.data1_y_axis_slt or self.data1_y_axis2_slt 
+                                                       or self.data1_y_axis3_slt or self.data1_y_axis4_slt)
+    
+        # Check if dataset 2 has valid x and y data
+        dataset2_has_data = self.data2_x_axis_slt and (self.data2_y_axis_slt or self.data2_y_axis2_slt 
+                                                       or self.data2_y_axis3_slt or self.data2_y_axis4_slt)
+
         try:
-            # Plot dataset 1
-            if self.data1_x_axis_slt and self.data1_y_axis_slt:
+            # Plot dataset 1 if there is both X and y-data selected for one axis or more
+            if dataset1_has_data:
                 self.plot_dataset1(ax)
     
-            # Plot dataset 2 if it exists
-            if self.data2_x_axis_slt and self.data2_y_axis_slt:
+            # Plot dataset 2 if it exists and y-data is selected for one axis or more
+            if dataset2_has_data:
                 self.plot_dataset2(ax)
-    
-            # Update legend and labels
-            self.update_legend(ax)
-            self.set_labels_and_title(ax)
+
+            if dataset1_has_data or dataset2_has_data:
+                # Update legend and labels
+                #self.update_legend(ax)
+                self.set_labels_and_title(ax)
     
         except Exception as e:
             print('Error from update ==>', e)
-    
+
+        # TODO: Consider only running draw() if there is data to plot
         self.canv.draw()
+        self.update_legend(self.canv.axes)
 
     def plot_dataset1(self, ax):
         """Plot the first dataset."""
@@ -229,57 +294,90 @@ class data(QtWidgets.QMainWindow, Ui_MainWindow): # Add Ui_MainWindow as arg to 
             ax.plot(xdata1, self.dataset1[self.data1_y_axis2_slt],
                     label=f"{self.Title1} - {self.data1_y_axis2_slt}",
                     color=self.colors['dataset1_y2'])
+        
+        # Check if the third y-axis is selected
+        if self.data1_y_axis3_slt:
+            ax.plot(xdata1, self.dataset1[self.data1_y_axis3_slt],
+                    label=f"{self.Title1} - {self.data1_y_axis3_slt}",
+                    color=self.colors['dataset1_y3'])
+            
+        # Check if the fourth y-axis is selected
+        if self.data1_y_axis4_slt:
+            ax.plot(xdata1, self.dataset1[self.data1_y_axis4_slt],
+                    label=f"{self.Title1} - {self.data1_y_axis4_slt}",
+                    color=self.colors['dataset1_y4'])
     
         self.plot_title = self.Title1  # Update plot title
+        self.set_labels_and_title(ax)
+
 
     def plot_dataset2(self, ax):
-       """Plot the second dataset."""
-       if not self.data2_x_axis_slt:
-           print("Please select an x-axis for dataset 2.")
-           return
-       
+        """Plot the second dataset."""
+        if not self.data2_x_axis_slt:
+            print("Please select an x-axis for dataset 2.")
+            return
+
         # Debug prints
-       #print(f"Selected x-axis for dataset 2: {self.data2_x_axis_slt}")
-       #print(f"Selected y-axis 1 for dataset 2: {self.data2_y_axis_slt}")
-       #print(f"Selected y-axis 2 for dataset 2: {self.data2_y_axis2_slt}")
-           
-       xdata2 = self.dataset2[self.data2_x_axis_slt] + self.offset_data2_x_axis
-       xdata2 = np.multiply(xdata2, self.data2_x_axis_multiplier)
-   
-       # Check if the second y-scale is enabled
-       if self.enable_second_yscale:
-           ax2 = ax.twinx()  # Create a second y-axis
-   
-           # Check if the first y-axis for dataset 2 is selected
-           if self.data2_y_axis_slt:
-               ax2.plot(xdata2, self.dataset2[self.data2_y_axis_slt], '-r',
+        #print(f"Selected x-axis for dataset 2: {self.data2_x_axis_slt}")
+        #print(f"Selected y-axis 1 for dataset 2: {self.data2_y_axis_slt}")
+        #print(f"Selected y-axis 2 for dataset 2: {self.data2_y_axis2_slt}")
+            
+        xdata2 = self.dataset2[self.data2_x_axis_slt] + self.offset_data2_x_axis
+        xdata2 = np.multiply(xdata2, self.data2_x_axis_multiplier)
+
+        # Check if the second y-scale is enabled
+        if self.enable_second_yscale:
+            ax2 = ax.twinx()  # Create a second y-axis
+
+            # Check if the first y-axis for dataset 2 is selected
+            if self.data2_y_axis_slt:
+                ax2.plot(xdata2, self.dataset2[self.data2_y_axis_slt], '-r',
                         label=f"{self.Title2} - {self.data2_y_axis_slt}",
                         color=self.colors['dataset2_y1'])  # Use distinct color
-   
-           # Check if the second y-axis for dataset 2 is selected
-           if self.data2_y_axis2_slt:
-               ax2.plot(xdata2, self.dataset2[self.data2_y_axis2_slt], '-g',
+
+            # Check if the second y-axis for dataset 2 is selected
+            if self.data2_y_axis2_slt:
+                ax2.plot(xdata2, self.dataset2[self.data2_y_axis2_slt], '-g',
                         label=f"{self.Title2} - {self.data2_y_axis2_slt}",
                         color=self.colors['dataset2_y2_secondary'])  # Use distinct color
-   
-           ax2.set_ylabel(self.data2_y_axis_slt)  # Set y-label for the second y-axis
-   
-       else:
-           # Plot on the primary y-axis
-           # Check if the first y-axis for dataset 2 is selected
-           if self.data2_y_axis_slt:
-               ax.plot(xdata2, self.dataset2[self.data2_y_axis_slt],
-                       label=f"{self.Title2} - {self.data2_y_axis_slt}",
-                       color=self.colors['dataset2_y1'])  # Use distinct color
-   
-           # Check if the second y-axis for dataset 2 is selected
-           if self.data2_y_axis2_slt:
-               ax.plot(xdata2, self.dataset2[self.data2_y_axis2_slt],
-                       label=f"{self.Title2} - {self.data2_y_axis2_slt}",
-                       color=self.colors['dataset2_y2'])  # Use distinct color
-   
-       self.plot_title = self.Title1 + " vs. " + self.Title2  # Update plot title
+
+            ax2.set_ylabel(self.data2_y_axis_slt)  # Set y-label for the second y-axis
+
+        else:
+            # Plot on the primary y-axis
+            # Check if the first y-axis for dataset 2 is selected
+            if self.data2_y_axis_slt:
+                ax.plot(xdata2, self.dataset2[self.data2_y_axis_slt],
+                        label=f"{self.Title2} - {self.data2_y_axis_slt}",
+                        color=self.colors['dataset2_y1'])  # Use distinct color
+
+            # Check if the second y-axis for dataset 2 is selected
+            if self.data2_y_axis2_slt:
+                ax.plot(xdata2, self.dataset2[self.data2_y_axis2_slt],
+                        label=f"{self.Title2} - {self.data2_y_axis2_slt}",
+                        color=self.colors['dataset2_y2'])  # Use distinct color
+            
+            # Check if the third y-axis is selected
+            if self.data2_y_axis3_slt:
+                ax.plot(xdata2, self.dataset2[self.data2_y_axis3_slt],
+                        label=f"{self.Title2} - {self.data2_y_axis3_slt}",
+                        color=self.colors['dataset2_y3'])
+                
+            # Check if the fourth y-axis is selected
+            if self.data1_y_axis4_slt:
+                ax.plot(xdata2, self.dataset2[self.data2_y_axis4_slt],
+                        label=f"{self.Title2} - {self.data2_y_axis4_slt}",
+                        color=self.colors['dataset2_y4'])
         
+        # Update legend and plot title to reflect the second dataset
+        self.set_labels_and_title(ax)
+        
+        if self.Title1 != self.Title2:
+            self.plot_title = self.Title1 + " vs. " + self.Title2
+        else:
+            self.plot_title = self.Title1
+
+
     def update_legend(self, ax):
         """Update the legend for the plot."""
         handles, labels = ax.get_legend_handles_labels()
@@ -291,10 +389,17 @@ class data(QtWidgets.QMainWindow, Ui_MainWindow): # Add Ui_MainWindow as arg to 
             handles.extend(handles2)
             labels.extend(labels2)
     
-        # Create a unique legend
+        # TODO: Consider adding check to avoid duplicate labels and remove any old legend
+        # Clear the previous legend if it exists
+        if hasattr(self, 'legend'):
+            self.legend.remove()
+
+        # Create a new unique legend
         by_label = dict(zip(labels, handles))
         self.canv.fig.legend(by_label.values(), by_label.keys(), loc="upper right", bbox_to_anchor=(1, 1), bbox_transform=ax.transAxes)
     
+
+
     def set_labels_and_title(self, ax):
         """
         Set the labels and title for the plot.
@@ -307,6 +412,7 @@ class data(QtWidgets.QMainWindow, Ui_MainWindow): # Add Ui_MainWindow as arg to 
         plt.setp(ax.xaxis.get_majorticklabels(), rotation=25)  # Rotate x-axis labels if needed
     
     
+
     def getFile1(self):
         """ This function will get the address of the csv file location
             also calls a readData function 
@@ -315,13 +421,21 @@ class data(QtWidgets.QMainWindow, Ui_MainWindow): # Add Ui_MainWindow as arg to 
         print("File :", self.filename1)
         self.readDatafile1()
     
+
+
     def getFile2(self): 
         self.filename2 = QFileDialog.getOpenFileName(filter = "Data file(*.csv *.txt)")[0]
         print("File :", self.filename2)
         self.readDatafile2()
     
+
+
     # .csv file reader
     def getDataset_csv(self,csvfilename):
+        ''' 
+        Read a csv file and return the data as a dictionary 
+        Optionally supports time format handling.
+        '''
         df = pd.read_csv(csvfilename,encoding='utf-8').fillna(0)
         LIST_OF_COLUMNS = df.columns.tolist()
         dataset={}
@@ -339,8 +453,11 @@ class data(QtWidgets.QMainWindow, Ui_MainWindow): # Add Ui_MainWindow as arg to 
                 print(e)
         return dataset,LIST_OF_COLUMNS
     
+
+
     # .txt file reader
     def getDataset_txt(self, txt_filename):
+        ''' Read a text file and return the data as a dictionary '''
         df = pd.read_csv(txt_filename, 
                                sep = self.txt_file_separator,
                                header=self.txt_file_header_row, 
@@ -358,39 +475,46 @@ class data(QtWidgets.QMainWindow, Ui_MainWindow): # Add Ui_MainWindow as arg to 
         self.data1_x_axis_slt=None
         self.data1_y_axis_slt=None
         self.data1_y_axis2_slt=None
+        self.data1_y_axis3_slt=None
+        self.data1_y_axis4_slt=None
         self.dataset1={}
 
         base_name = os.path.basename(self.filename1)
         self.Title1 = os.path.splitext(base_name)[0]
-        print('FILE 1', self.Title1)
+        print('readDatafile1: FILE 1', self.Title1)
         
         if 'txt' in base_name:
             self.dataset1, self.list_of_columns_dataset1 = self.getDataset_txt(self.filename1)
         if 'csv' in base_name:
             self.dataset1, self.list_of_columns_dataset1 = self.getDataset_csv(self.filename1)
            
-        self.Update(self.current_theme) # lets 0th theme be the default : bmh
+        self.update_plot(self.current_theme) # lets 0th theme be the default : bmh
         self.reset_comboBoxes_data1()
-        
+
+
+
     def readDatafile2(self):
         self.data2_x_axis_slt=None
         self.data2_y_axis_slt=None
         self.data2_y_axis2_slt=None
+        self.data2_y_axis3_slt=None
+        self.data2_y_axis4_slt=None
         self.dataset2={}
         
         base_name = os.path.basename(self.filename2)
         self.Title2 = os.path.splitext(base_name)[0]
-        print('FILE 2',self.Title2 )
+        print('readDatafile2: FILE 2',self.Title2 )
         
         if 'txt' in base_name:
             self.dataset2, self.list_of_columns_dataset2 = self.getDataset_txt(self.filename2)
         if 'csv' in base_name:
             self.dataset2, self.list_of_columns_dataset2 = self.getDataset_csv(self.filename2)
      
-        self.Update(self.current_theme) # lets 0th theme be the default : bmh
+        self.update_plot(self.current_theme) # lets 0th theme be the default : bmh
         self.reset_comboBoxes_data2()
         
     
+
     def set_data1_x_offset(self, value):
         if value == 0:
             return
@@ -398,8 +522,10 @@ class data(QtWidgets.QMainWindow, Ui_MainWindow): # Add Ui_MainWindow as arg to 
         value = float(value)
         self.offset_data1_x_axis = value
         print('Adjusted data 1 x-offset to: ', value)
-        self.Update(self.current_theme)
+        self.update_plot(self.current_theme)
     
+
+
     def set_data2_x_offset(self, value):
         if value == 0:
             return
@@ -407,24 +533,26 @@ class data(QtWidgets.QMainWindow, Ui_MainWindow): # Add Ui_MainWindow as arg to 
         value = float(value)
         self.offset_data2_x_axis = value
         print('Adjusted data 2 x-offset to: ', value)
-        self.Update(self.current_theme)
+        self.update_plot(self.current_theme)
         
     
+
     # LineEdit for dataset 1, x axis multiplier
     def set_data1_x_multiplier(self, text):
         try:
              self.data1_x_axis_multiplier = float(text)
-             self.Update(self.current_theme)
+             self.update_plot(self.current_theme)
              print("Updated data 1 x-axis multiplier")
         except Exception as e:
             print('Dataset 1 x-multiplier input is wrong, use float i.e. 2.0 :', e)
 
     
+
      # LineEdit for dataset 2, x axis multiplier
     def set_data2_x_multiplier(self, text):
         try:
              self.data2_x_axis_multiplier = float(text)
-             self.Update(self.current_theme)
+             self.update_plot(self.current_theme)
              print("Updated data 2 x-axis multiplier")
         except Exception as e:
             print('Dataset 2 x-multiplier input is wrong: use float i.e. 2.0', e)
@@ -434,12 +562,12 @@ class data(QtWidgets.QMainWindow, Ui_MainWindow): # Add Ui_MainWindow as arg to 
         if not b.isChecked():
             print('Second y-axis is not active')
             self.enable_second_yscale = False
-            self.Update(self.current_theme)
+            self.update_plot(self.current_theme)
             return
         print('Second y-axis is active')
         self.enable_second_yscale = True
-        self.Update(self.current_theme)
-
+        self.update_plot(self.current_theme)
+        self.update_legend(self.canv.axes)
     
     def reset_comboBoxes_data1(self):
         self.comboBox_data1_x_axis.clear()
@@ -450,33 +578,56 @@ class data(QtWidgets.QMainWindow, Ui_MainWindow): # Add Ui_MainWindow as arg to 
         self.comboBox_data1_x_axis.addItems(['Select horizontal axis here'])
         self.comboBox_data1_y_axis.addItems(['Select y-data 1 here'])
         self.comboBox_data1_y_axis_2.addItems(['Select y-data 2 here'])
+        self.comboBox_data1_y_axis_3.addItems(['Select y-data 3 here'])
+        self.comboBox_data1_y_axis_4.addItems(['Select y-data 4 here'])
         
         # Make dropdown selections available for all data found in csv/txt
         self.comboBox_data1_x_axis.addItems(self.list_of_columns_dataset1)
         self.comboBox_data1_y_axis.addItems(self.list_of_columns_dataset1)
         self.comboBox_data1_y_axis_2.addItems(self.list_of_columns_dataset1)
+        self.comboBox_data1_y_axis_3.addItems(self.list_of_columns_dataset1)
+        self.comboBox_data1_y_axis_4.addItems(self.list_of_columns_dataset1)
+        self.comboBox_data1_x_axis.setCurrentIndex(0)
+        self.comboBox_data1_y_axis.setCurrentIndex(0)
+        self.comboBox_data1_y_axis_2.setCurrentIndex(0)
+        self.comboBox_data1_y_axis_3.setCurrentIndex(0)
+        self.comboBox_data1_y_axis_4.setCurrentIndex(0)
+         
+    
         
     
     def reset_comboBoxes_data2(self):
         self.comboBox_data2_x_axis.clear()
         self.comboBox_data2_y_axis.clear()
         self.comboBox_data2_y_axis_2.clear()
+        self.comboBox_data2_y_axis_3.clear()
+        self.comboBox_data2_y_axis_4.clear()
         
         # Add initial values to the combo boxes
         self.comboBox_data2_x_axis.addItems(['Select horizontal axis here'])
         self.comboBox_data2_y_axis.addItems(['Select y-data 1 here'])
         self.comboBox_data2_y_axis_2.addItems(['Select y-data 2 here'])
+        self.comboBox_data2_y_axis_3.addItems(['Select y-data 3 here'])
+        self.comboBox_data2_y_axis_4.addItems(['Select y-data 4 here'])
         
         # Make dropdown selections available for all data found in csv/txt
         self.comboBox_data2_x_axis.addItems(self.list_of_columns_dataset2)
         self.comboBox_data2_y_axis.addItems(self.list_of_columns_dataset2)
         self.comboBox_data2_y_axis_2.addItems(self.list_of_columns_dataset2)
+        self.comboBox_data2_y_axis_3.addItems(self.list_of_columns_dataset2)
+        self.comboBox_data2_y_axis_4.addItems(self.list_of_columns_dataset2)
+        self.comboBox_data2_x_axis.setCurrentIndex(0)
+        self.comboBox_data2_y_axis.setCurrentIndex(0)   
+        self.comboBox_data2_y_axis_2.setCurrentIndex(0)
+        self.comboBox_data2_y_axis_3.setCurrentIndex(0)
+        self.comboBox_data2_y_axis_4.setCurrentIndex(0)
+
         
         
     def show_about_popup(self):
         msg = QMessageBox()
         msg.setWindowTitle("About the csv plot tool..")
-        msg.setText("Compare data from two datasets with tab formatted txt\n or a comma separated file.\n\n\n Created by JT-simutech")
+        msg.setText("Compare data from two datasets with tab formatted txt\n or a comma separated file.")
         msg.setIcon(QMessageBox.Information)
         msg.setStandardButtons(QMessageBox.Ok)
         msg.exec()
@@ -488,11 +639,15 @@ class data(QtWidgets.QMainWindow, Ui_MainWindow): # Add Ui_MainWindow as arg to 
         self.comboBox_data1_x_axis.currentIndexChanged['QString'].connect(self.select_data1_Xaxis)
         self.comboBox_data1_y_axis.currentIndexChanged['QString'].connect(self.select_data1_Yaxis)
         self.comboBox_data1_y_axis_2.currentIndexChanged['QString'].connect(self.select_data1_Yaxis2)
+        self.comboBox_data1_y_axis_3.currentIndexChanged['QString'].connect(self.select_data1_Yaxis3)
+        self.comboBox_data1_y_axis_4.currentIndexChanged['QString'].connect(self.select_data1_Yaxis4)
         
         # Connect selected indexes of combo boxes to action-functions for dataset 2
         self.comboBox_data2_x_axis.currentIndexChanged['QString'].connect(self.select_data2_Xaxis)
         self.comboBox_data2_y_axis.currentIndexChanged['QString'].connect(self.select_data2_Yaxis)
         self.comboBox_data2_y_axis_2.currentIndexChanged['QString'].connect(self.select_data2_Yaxis2)
+        self.comboBox_data2_y_axis_3.currentIndexChanged['QString'].connect(self.select_data2_Yaxis3)
+        self.comboBox_data2_y_axis_4.currentIndexChanged['QString'].connect(self.select_data2_Yaxis4)
         
         # Connect actions for the opening of dataset 1 and 2
         self.actionOpen_csv_file_1.triggered.connect(self.getFile1)

@@ -1,5 +1,9 @@
 # CSV Plot tool that can align and plot two datasets
 Use one to two text files, select data and plot it. Use comma separated or tab separated data with headings.
+Supports up to four Y-values per dataset for comparison. The split scaling for Y-axis is partially implemented.
+
+# Requirements
+Python 3.11
 
 # Instructions for updates
 Convert the «csv_plotter.ui» file to (python) .py file using pyuic5:

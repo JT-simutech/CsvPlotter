@@ -1,0 +1,8 @@
+matplotlib==3.10.1
+seaborn==0.13.2
+pandas==2.2.3
+numpy==2.2.4
+pyqt5>=5.15,<=5.16
+sip==6.10
+pyinstaller==6.12.0
+

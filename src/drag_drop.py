@@ -2,7 +2,7 @@
 # Lets make the main window class
 # Subscribe to PyShine Youtube channel for more detail! 
 # WEBSITE: www.pyshine.com
-from main import Ui_MainWindow
+from main_broken import Ui_MainWindow
 import sys
 from PyQt5 import QtCore, QtWidgets
 import platform
